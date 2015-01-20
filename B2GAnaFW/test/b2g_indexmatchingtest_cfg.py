@@ -16,15 +16,14 @@ import FWCore.ParameterSet.VarParsing as opts
 options = opts.VarParsing ('analysis')
 
 options.register('maxEvts',
-                 1,# default value: process all events
+                 100,# default value: process all events
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.int,
                  'Number of events to process')
 
 options.register('sample',
-                 'file:/afs/cern.ch/work/d/decosa/public/DMtt/miniAOD_Phys14.root',
-                 #'/store/mc/Phys14DR/TprimeJetToTH_allHdecays_M1200GeV_Tune4C_13TeV-madgraph-tauola/MINIAODSIM/PU20bx25_PHYS14_25_V1-v1/20000/94117DA2-009A-E411-9DFB
--002590494CB2.root',
+                 #'file:/afs/cern.ch/work/d/decosa/public/DMtt/miniAOD_Phys14.root',
+                 '/store/mc/Phys14DR/TprimeJetToTH_allHdecays_M1200GeV_Tune4C_13TeV-madgraph-tauola/MINIAODSIM/PU20bx25_PHYS14_25_V1-v1/20000/94117DA2-009A-E411-9DFB-002590494CB2.root',
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.string,
                  'Sample to analyze')
@@ -355,8 +354,7 @@ process.combinedSecondaryVertex.trackMultiplicityMin = 1 #silly sv, uses un filt
 # Build jet collection with reco tools
 from RecoJets.JetProducers.ak5PFJets_cfi import ak5PFJets
 # Gen jets, with neutrinos subtracted
-process.packedGenParticlesForJetsNoNu = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedGenParticles"), cut = cms.string("abs(pdgId) != 12 && abs(pdgId) !=
-14 && abs(pdgId) != 16"))
+process.packedGenParticlesForJetsNoNu = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedGenParticles"), cut = cms.string("abs(pdgId) != 12 && abs(pdgId) !=14 && abs(pdgId) != 16"))
 from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
 process.ak8GenJetsNoNuPruned = ak4GenJets.clone(
     rParam = cms.double(0.8),
@@ -368,6 +366,7 @@ process.ak8GenJetsNoNuPruned = ak4GenJets.clone(
     zcut = cms.double(0.1),
     rcut_factor = cms.double(0.5)
 )
+
 # Reco jets, with CHS
 process.chs = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string("fromPV()>0"))
 process.ak8PFJetsCHS = ak5PFJets.clone(
@@ -390,6 +389,7 @@ process.ak8PFJetsCHSPruned = ak5PFJets.clone(
                                         zcut = cms.double(0.1),
                                         rcut_factor = cms.double(0.5)
                                         )
+
 bTagDiscriminators = [
     'trackCountingHighEffBJetTags',
     'trackCountingHighPurBJetTags',
@@ -400,6 +400,7 @@ bTagDiscriminators = [
     'combinedSecondaryVertexBJetTags',
     'combinedInclusiveSecondaryVertexV2BJetTags'
 ]
+
 # Run Pat tools on AK8 jets
 addJetCollection(
     process,
@@ -410,11 +411,13 @@ addJetCollection(
     jetCorrections = ('AK7PFchs', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'None'),
     genJetCollection = cms.InputTag('ak8GenJetsNoNuPruned'),
 )
+
 # fix references
 getattr(process,'patJetPartonMatchAK8PFCHSPruned').matched = cms.InputTag('prunedGenParticles')
 process.patJetGenJetMatchAK8PFCHSPruned.matched = "slimmedGenJets"
 process.patJetPartonMatchAK8PFCHSPruned.matched = "prunedGenParticles"
 process.patJetCorrFactorsAK8PFCHSPruned.primaryVertices = "unpackedTracksAndVertices"
+
 # Run Pat tools on AK8 subjets
 addJetCollection(
     process,
@@ -429,6 +432,7 @@ addJetCollection(
     jetCorrections = ('AK7PFchs', ['L1FastJet', 'L2Relative', 'L3Absolute'], 'None'),
     genJetCollection = cms.InputTag('ak8GenJetsNoNuPruned','SubJets'),
 )
+
 # fix references
 getattr(process,'patJetPartonMatchAK8PFCHSPrunedSubjets').matched = cms.InputTag('prunedGenParticles')
 process.patJetGenJetMatchAK8PFCHSPrunedSubjets.matched = "slimmedGenJets"
@@ -483,6 +487,7 @@ process.cmsTopTagCHS = cms.EDProducer(
     rParam = cms.double(0.8),
     writeCompound = cms.bool(True)
     )
+
 process.CATopTagInfos = cms.EDProducer("CATopJetTagger",
                                     src = cms.InputTag("cmsTopTagCHS"),
                                     TopMass = cms.double(171),
@@ -505,6 +510,7 @@ addJetCollection(
     btagDiscriminators = ['combinedSecondaryVertexBJetTags'],
     getJetMCFlavour = False
     )
+
 process.patJetPartonMatchCMSTopTagCHS.matched='prunedGenParticles'
 process.patJetCorrFactorsCMSTopTagCHS.primaryVertices = "unpackedTracksAndVertices"
 process.patJetGenJetMatchCMSTopTagCHS.matched = 'slimmedGenJets'
@@ -531,6 +537,7 @@ addJetCollection(
     btagDiscriminators = ['combinedSecondaryVertexBJetTags'],
     getJetMCFlavour = False,
     )
+
 process.patJetPartonMatchCMSTopTagCHSSubjets.matched='prunedGenParticles'
 process.patJetCorrFactorsCMSTopTagCHSSubjets.primaryVertices = "unpackedTracksAndVertices"
 process.patJetGenJetMatchCMSTopTagCHSSubjets.matched = 'slimmedGenJets'

@@ -442,26 +442,8 @@ jetVars = (
     ),
 )
 
-genPartVars = (
-    cms.PSet(
-    tag = cms.untracked.string("ID"),
-    quantity = cms.untracked.string("pdgId")
-    ),
-    cms.PSet(
-    tag = cms.untracked.string("Status"),
-    quantity = cms.untracked.string("status")
-    ),
-    cms.PSet(
-    tag = cms.untracked.string("MomID"),
-    quantity = cms.untracked.string("?numberOfMothers>0 ? mother(0).pdgId : -900")
-    ),
-    )
-
-
-
-### jet variables
+### fat jet (substructure) variables
 jetAK8Vars = (
-#### SUBSTRUCTURE
      cms.PSet(
         tag = cms.untracked.string("tau1"),
         quantity = cms.untracked.string("userFloat('Njettiness:tau1')")
@@ -506,8 +488,6 @@ genPartVars = (
     quantity = cms.untracked.string("?numberOfMothers>0 ? mother(0).pdgId : -900")
     ),
     )
-
-
 
 ### copying the muon set of variables from basic,
 ### adding the set of variable which are related to muons only
