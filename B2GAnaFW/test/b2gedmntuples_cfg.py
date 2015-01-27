@@ -12,7 +12,7 @@ import FWCore.ParameterSet.VarParsing as opts
 options = opts.VarParsing ('analysis')
 
 options.register('maxEvts',
-                 200,# default value: process all events
+                 20000,# default value: process all events
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.int,
                  'Number of events to process')
@@ -20,7 +20,7 @@ options.register('maxEvts',
 options.register('sample',
                  #'file:/afs/cern.ch/work/d/decosa/public/DMtt/miniAOD_Phys14.root',
                  #/TprimeJetToTH_allHdecays_M1200GeV_Tune4C_13TeV-madgraph-tauola/Phys14DR-PU20bx25_PHYS14_25_V1-v1/MINIAODSIM
-                 '/store/mc/Phys14DR/TprimeJetToTH_allHdecays_M1200GeV_Tune4C_13TeV-madgraph-tauola/MINIAODSIM/PU20bx25_PHYS14_25_V1-v1/20000/94117DA2-009A-E411-9DFB-002590494CB2.root',
+                 'root://xrootd-cms.infn.it//store/mc/Phys14DR/ZPrimeToTTJets_M3000GeV_W30GeV_Tune4C_13TeV-madgraph-tauola/MINIAODSIM/PU20bx25_PHYS14_25_V1-v1/00000/746BDDDC-3568-E411-BAA1-3417EBE2F0DF.root',
                  opts.VarParsing.multiplicity.singleton,
                  opts.VarParsing.varType.string,
                  'Sample to analyze')
@@ -188,7 +188,7 @@ bTagDiscriminators = [
     'jetBProbabilityBJetTags',
     'simpleSecondaryVertexHighEffBJetTags',
     'simpleSecondaryVertexHighPurBJetTags',
-    'combinedSecondaryVertexBJetTags',
+    #'combinedSecondaryVertexBJetTags',
     'combinedInclusiveSecondaryVertexV2BJetTags'
     ]
 
@@ -289,7 +289,7 @@ addJetCollection(
     pfCandidates = cms.InputTag('packedPFCandidates'), 
     pvSource = cms.InputTag('offlineSlimmedPrimaryVertices'),
     jetCorrections = ('AK4PFchs', cms.vstring(['L1FastJet', 'L2Relative', 'L3Absolute']), 'Type-2'),
-    btagDiscriminators = ['combinedSecondaryVertexBJetTags', 'combinedInclusiveSecondaryVertexV2BJetTags'],
+    btagDiscriminators = ['combinedInclusiveSecondaryVertexV2BJetTags'],
     algo= 'AK', 
     rParam = 0.8
     )
@@ -309,7 +309,7 @@ process.patJetCorrFactorsSlimmedJetsAK8BTagged.primaryVertices = "unpackedTracks
 process.jetTracksAssociatorAtVertexSlimmedJetsAK8BTagged.coneSize = 0.8 
 
 process.load('PhysicsTools.PatAlgos.slimming.unpackedTracksAndVertices_cfi')
-process.combinedSecondaryVertex.trackMultiplicityMin = 1 #silly sv, uses un filtered tracks.. i.e. any pt
+#process.combinedSecondaryVertex.trackMultiplicityMin = 1 #silly sv, uses un filtered tracks.. i.e. any pt
 
 process.chs = cms.EDFilter("CandPtrSelector", src = cms.InputTag("packedPFCandidates"), cut = cms.string("fromPV()>0"))
 
@@ -321,6 +321,27 @@ process.Njettiness = Njettiness.clone(
     )
 
 process.patJetsAK8PFCHS.userData.userFloats.src += ['Njettiness:tau1','Njettiness:tau2','Njettiness:tau3']
+
+
+from RecoJets.Configuration.RecoPFJets_cff import ak8PFJetsCHSPruned, ak8PFJetsCHSFiltered, ak8PFJetsCHSTrimmed 
+process.ak8PFJetsCHSPruned   = ak8PFJetsCHSPruned.clone(src = cms.InputTag("chs"))
+process.ak8PFJetsCHSTrimmed  = ak8PFJetsCHSTrimmed.clone(src = cms.InputTag("chs"))
+process.ak8PFJetsCHSFiltered = ak8PFJetsCHSFiltered.clone(src = cms.InputTag("chs"))
+
+from RecoJets.JetProducers.ak8PFJetsCHS_groomingValueMaps_cfi import *
+process.ak8PFJetsCHSPrunedMass = cms.EDProducer("RecoJetDeltaRValueMapProducer",
+                                         src = cms.InputTag("ak8PFJetsCHS"),
+                                         matched = cms.InputTag("ak8PFJetsCHSPruned"),
+                                         distMax = cms.double(0.8),
+                                         value = cms.string('mass')
+                        )
+process.ak8PFJetsCHSTrimmedMass = process.ak8PFJetsCHSPrunedMass.clone(matched = cms.InputTag("ak8PFJetsCHSTrimmed"))
+process.ak8PFJetsCHSFilteredMass = process.ak8PFJetsCHSPrunedMass.clone(matched = cms.InputTag("ak8PFJetsCHSFiltered"))
+
+process.patJetsAK8PFCHS.userData.userFloats.src += ['ak8PFJetsCHSPrunedMass', 'ak8PFJetsCHSTrimmedMass', 'ak8PFJetsCHSFilteredMass']
+
+
+
 
 #$#$#$#$#$#$#$#$#$#
 #   TOP TAG JETS  #
@@ -371,7 +392,7 @@ addJetCollection(
     jetCorrections = ('AK7PFchs', cms.vstring(['L1FastJet', 'L2Relative', 'L3Absolute']), 'None'),
     trackSource = cms.InputTag('unpackedTracksAndVertices'),
     pvSource = cms.InputTag("unpackedTracksAndVertices"),
-    btagDiscriminators = ['combinedSecondaryVertexBJetTags'],
+    btagDiscriminators = ['combinedInclusiveSecondaryVertexV2BJetTags'],
     getJetMCFlavour = False
     )
 process.patJetPartonMatchCMSTopTagCHS.matched='prunedGenParticles'
@@ -379,12 +400,12 @@ process.patJetCorrFactorsCMSTopTagCHS.primaryVertices = "unpackedTracksAndVertic
 process.patJetGenJetMatchCMSTopTagCHS.matched = 'slimmedGenJets'
 process.patJetPartonMatchCMSTopTagCHS.matched = 'prunedGenParticles'
 #process.jetTracksAssociatorAtVertexCMSTopTagCHS=process.ak5JetTracksAssociatorAtVertexPF.clone(jets = cms.InputTag('cmsTopTagCHS'), coneSize = 0.8)
-process.secondaryVertexTagInfosCMSTopTagCHS.trackSelection.jetDeltaRMax = cms.double(0.8) # default is 0.3
-process.secondaryVertexTagInfosCMSTopTagCHS.vertexCuts.maxDeltaRToJetAxis = cms.double(0.8) # default is 0.5
-process.combinedSecondaryVertexCMSTopTagCHS= process.combinedSecondaryVertex.clone()
-process.combinedSecondaryVertexCMSTopTagCHS.trackSelection.jetDeltaRMax = cms.double(0.8)
-process.combinedSecondaryVertexCMSTopTagCHS.trackPseudoSelection.jetDeltaRMax = cms.double(0.8)
-process.combinedSecondaryVertexBJetTagsCMSTopTagCHS.jetTagComputer = cms.string('combinedSecondaryVertexCMSTopTagCHS')
+#process.secondaryVertexTagInfosCMSTopTagCHS.trackSelection.jetDeltaRMax = cms.double(0.8) # default is 0.3
+#process.secondaryVertexTagInfosCMSTopTagCHS.vertexCuts.maxDeltaRToJetAxis = cms.double(0.8) # default is 0.5
+#process.combinedSecondaryVertexCMSTopTagCHS= process.combinedInclusiveSecondaryVertexV2.clone()
+#process.combinedSecondaryVertexCMSTopTagCHS.trackSelection.jetDeltaRMax = cms.double(0.8)
+#process.combinedSecondaryVertexCMSTopTagCHS.trackPseudoSelection.jetDeltaRMax = cms.double(0.8)
+#process.combinedSecondaryVertexBJetTagsCMSTopTagCHS.jetTagComputer = cms.string('combinedSecondaryVertexCMSTopTagCHS')
 process.patJetsCMSTopTagCHS.addTagInfos = True
 process.patJetsCMSTopTagCHS.tagInfoSources = cms.VInputTag(
     cms.InputTag('CATopTagInfos')
@@ -397,7 +418,7 @@ addJetCollection(
     jetCorrections = ('AK7PFchs', cms.vstring(['L1FastJet', 'L2Relative', 'L3Absolute']), 'None'),
     trackSource = cms.InputTag('unpackedTracksAndVertices'),
     pvSource = cms.InputTag("unpackedTracksAndVertices"),
-    btagDiscriminators = ['combinedSecondaryVertexBJetTags'],
+    btagDiscriminators = ['combinedInclusiveSecondaryVertexV2BJetTags'],
     getJetMCFlavour = False,
     )
 process.patJetPartonMatchCMSTopTagCHSSubjets.matched='prunedGenParticles'
